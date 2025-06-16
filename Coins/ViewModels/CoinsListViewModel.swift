@@ -15,6 +15,9 @@ class CoinsListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var searchQuery: String = ""
     
+    private var lastRefreshDate: Date = .distantPast
+    private let debounceInterval: TimeInterval = 1.0
+    
     var filteredCoins: [CoinModel] {
         if searchQuery.isEmpty {
             return coins
@@ -24,6 +27,17 @@ class CoinsListViewModel: ObservableObject {
                 $0.symbol.localizedCaseInsensitiveContains(searchQuery)
             }
         }
+    }
+    
+    func fetchCoinsDebounced() async {
+        let now = Date()
+        guard now.timeIntervalSince(lastRefreshDate) > debounceInterval else {
+            print("⏳ Skipping refresh — debounce in effect")
+            return
+        }
+
+        lastRefreshDate = now
+        await fetchCoins()
     }
     
     func fetchCoins() async {
@@ -61,7 +75,9 @@ class CoinsListViewModel: ObservableObject {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let decodedCoins = try decoder.decode([CoinModel].self, from: data)
-            self.coins = Array(decodedCoins.prefix(20))
+            await MainActor.run {
+                self.coins = Array(decodedCoins.prefix(20))
+            }
 
         } catch {
             self.errorMessage = "Failed to fetch coins: \(error.localizedDescription)"
