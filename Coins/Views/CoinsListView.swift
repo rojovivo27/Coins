@@ -29,7 +29,10 @@ struct CoinsListView: View {
 
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.filteredCoins, id: \.id) { coin in
-                        CoinCellView(coin: coin)
+                        NavigationLink(destination: CoinDetailView(coin: coin)) {
+                            CoinCellView(coin: coin)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                     .navigationTitle("Coins")
                     .searchable(text: $viewModel.searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search coins") {}
